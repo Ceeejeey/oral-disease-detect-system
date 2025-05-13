@@ -1,0 +1,5 @@
+/oral-env
+/__pycache__/
+/.DS_Store
+/split_disease_dataset
+/split_cancer_dataset

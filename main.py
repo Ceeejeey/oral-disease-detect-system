@@ -1,0 +1,143 @@
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+import torch
+import torchvision.transforms as transforms
+from PIL import Image
+from io import BytesIO
+import timm
+import os
+import numpy as np
+from tensorflow.keras.models import load_model
+
+# ======== Configuration ========
+DISEASE_MODEL_PATH = "/home/gihan/Documents/oral-detection/best_model/efficientvit_b0_oral_disease_classifier.pth"
+CANCER_MODEL_PATH = "/home/gihan/Documents/oral-detection/cancer_model_best.h5"
+MODEL_NAME = "efficientvit_b0"
+CLASSES = ['Calculus', 'Caries', 'Gingivitis', 'Hypodontia', 'Tooth Discoloration', 'Ulcers']
+NUM_CLASSES = len(CLASSES)
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# ======== Initialize FastAPI ========
+app = FastAPI()
+
+# CORS Middleware
+origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ======== Load Models ========
+def load_disease_model():
+    """ Load the disease model using timm. """
+    try:
+        model = timm.create_model(MODEL_NAME, pretrained=False, num_classes=NUM_CLASSES)
+        state_dict = torch.load(DISEASE_MODEL_PATH, map_location=DEVICE)
+        model.load_state_dict(state_dict)
+        model.to(DEVICE)
+        model.eval()
+        print("✅ Disease Model Loaded Successfully.")
+        return model
+    except Exception as e:
+        print(f"Error loading disease model: {e}")
+        raise RuntimeError(f"Error loading disease model: {e}")
+
+def load_cancer_model():
+    """ Load the cancer model using TensorFlow. """
+    try:
+        model = load_model(CANCER_MODEL_PATH)
+        print("✅ Cancer Model Loaded Successfully.")
+        return model
+    except Exception as e:
+        print(f"Error loading cancer model: {e}")
+        raise RuntimeError(f"Error loading cancer model: {e}")
+
+disease_model = load_disease_model()
+cancer_model = load_cancer_model()
+
+# ======== Preprocessing Functions ========
+def preprocess_image_torch(image_data):
+    """ Preprocess image for PyTorch model. """
+    transform = transforms.Compose([
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+    image = Image.open(BytesIO(image_data)).convert("RGB")
+    image = transform(image).unsqueeze(0)
+    return image.to(DEVICE)
+
+def preprocess_image_tf(image_data):
+    """ Preprocess image for TensorFlow model. """
+    image = Image.open(BytesIO(image_data)).convert("RGB")
+    image = image.resize((224, 224))
+    image_array = np.array(image) / 255.0
+    image_array = np.expand_dims(image_array, axis=0)
+    return image_array
+
+# ======== Prediction Functions ========
+def predict_disease(image_data):
+    """ Predict disease using the PyTorch model. """
+    image_tensor = preprocess_image_torch(image_data)
+    
+    with torch.no_grad():
+        outputs = disease_model(image_tensor)
+        probabilities = torch.nn.functional.softmax(outputs[0], dim=0)
+        max_conf_idx = torch.argmax(probabilities).item()
+        predicted_class = CLASSES[max_conf_idx]
+        confidence_score = probabilities[max_conf_idx].item()
+
+    return predicted_class, confidence_score
+
+def predict_cancer(image_data):
+    """ Predict cancer using the TensorFlow model. """
+    image_tensor = preprocess_image_tf(image_data)
+    prediction = cancer_model.predict(image_tensor)[0][0]
+    label = "Cancer" if prediction >= 0.5 else "Non-Cancer"
+    confidence = prediction if label == "Cancer" else 1 - prediction
+
+    return label, confidence
+
+# ======== Combined Prediction Logic ========
+@app.post("/predict")
+async def predict(file: UploadFile = File(...)):
+    try:
+        # Read image data
+        image_data = await file.read()
+
+        # Step 1: Disease Model Prediction
+        disease_label, disease_confidence = predict_disease(image_data)
+
+        if disease_confidence >= 0.6:
+            # Disease model is confident
+            return {
+                "prediction": f"Not Cancer - {disease_label}",
+                "confidence": round(disease_confidence, 4)
+            }
+
+        # Step 2: Cancer Model Prediction
+        cancer_label, cancer_confidence = predict_cancer(image_data)
+
+        if cancer_label == "Cancer":
+            return {
+                "prediction": "Cancer",
+                "confidence": round(cancer_confidence, 4)
+            }
+
+        # Final output if not cancer and no confident disease
+        return {
+            "prediction": "Healthy / No Disease Detected",
+            "confidence": round(1 - cancer_confidence, 4)
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ======== Root Endpoint ========
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the Oral Disease and Cancer Detection API. Use the /predict endpoint to upload an image for prediction."}
