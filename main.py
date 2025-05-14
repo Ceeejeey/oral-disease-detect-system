@@ -1,5 +1,6 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
 import torch
 import torchvision.transforms as transforms
 from PIL import Image
@@ -8,6 +9,13 @@ import timm
 import os
 import numpy as np
 from tensorflow.keras.models import load_model
+
+from database import get_db
+from signup import router as signup_router
+from login import router as login_router
+from schemas import UserCreate, UserResponse
+from auth import get_current_user
+
 
 # ======== Configuration ========
 DISEASE_MODEL_PATH = "/home/gihan/Documents/oral-detection/best_model/efficientvit_b0_oral_disease_classifier.pth"
@@ -21,7 +29,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 app = FastAPI()
 
 # CORS Middleware
-origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
+origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -29,6 +37,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include Authentication Routers
+app.include_router(signup_router, prefix="/api", tags=["Authentication"])
+app.include_router(login_router, prefix="/api", tags=["Authentication"])
 
 # ======== Load Models ========
 def load_disease_model():
@@ -104,7 +116,11 @@ def predict_cancer(image_data):
 
 # ======== Combined Prediction Logic ========
 @app.post("/predict")
-async def predict(file: UploadFile = File(...)):
+async def predict(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: UserCreate = Depends(get_current_user)
+):
     try:
         # Read image data
         image_data = await file.read()
@@ -115,6 +131,7 @@ async def predict(file: UploadFile = File(...)):
         if disease_confidence >= 0.6:
             # Disease model is confident
             return {
+                "user": current_user.email,
                 "prediction": f"Not Cancer - {disease_label}",
                 "confidence": round(disease_confidence, 4)
             }
@@ -124,12 +141,14 @@ async def predict(file: UploadFile = File(...)):
 
         if cancer_label == "Cancer":
             return {
+                "user": current_user.email,
                 "prediction": "Cancer",
                 "confidence": round(cancer_confidence, 4)
             }
 
         # Final output if not cancer and no confident disease
         return {
+            "user": current_user.email,
             "prediction": "Healthy / No Disease Detected",
             "confidence": round(1 - cancer_confidence, 4)
         }
@@ -140,4 +159,4 @@ async def predict(file: UploadFile = File(...)):
 # ======== Root Endpoint ========
 @app.get("/")
 async def root():
-    return {"message": "Welcome to the Oral Disease and Cancer Detection API. Use the /predict endpoint to upload an image for prediction."}
+    return {"message": "Welcome to the Oral Disease and Cancer Detection API. Please login to use the /predict endpoint."}
