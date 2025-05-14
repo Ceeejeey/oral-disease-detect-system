@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -10,7 +9,7 @@ const ResultPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const { diseaseType, explanation } = location.state || {};
+  const { prediction, confidence, imageName } = location.state || {};
 
   const generatePDF = () => {
     const doc = new jsPDF();
@@ -18,9 +17,9 @@ const ResultPage = () => {
     doc.text("Oral Health Analysis Report", 20, 20);
     doc.setFontSize(12);
     doc.text(`Date: ${new Date().toLocaleString()}`, 20, 35);
-    doc.text(`Disease Type: ${diseaseType}`, 20, 45);
-    doc.text("Explanation:", 20, 55);
-    doc.text(doc.splitTextToSize(explanation, 170), 20, 65);
+    doc.text(`Analyzed Image: ${imageName}`, 20, 45);
+    doc.text(`Prediction: ${prediction}`, 20, 55);
+    doc.text(`Confidence: ${(confidence * 100).toFixed(2)}%`, 20, 65);
     doc.save("oral-health-report.pdf");
   };
 
@@ -33,7 +32,7 @@ const ResultPage = () => {
     }
   };
 
-  if (!diseaseType) {
+  if (!prediction) {
     return (
       <div className="result-container">
         <h2>No Result Found</h2>
@@ -48,14 +47,14 @@ const ResultPage = () => {
     <div className="result-container">
       <h2>Analysis Result</h2>
 
-      <div className={`result-card ${diseaseType === "Cancer" ? "cancer" : "other"}`}>
-        <h3>{diseaseType}</h3>
-        <p>{explanation}</p>
+      <div className={`result-card ${prediction === "Cancer" ? "cancer" : "other"}`}>
+        <h3>{prediction}</h3>
+        <p>Confidence: {(confidence * 100).toFixed(2)}%</p>
       </div>
 
       <button onClick={generatePDF} className="pdf-button">Download PDF Report</button>
 
-      {diseaseType === "Cancer" && (
+      {prediction === "Cancer" && (
         <div className="important-note">
           <p><strong>⚠️ Important:</strong> Please consult an oral cancer specialist immediately.</p>
           <button className="doctor-button" onClick={() => handleProtectedNavigate("/dashboard/doctors")}>
@@ -75,4 +74,3 @@ const ResultPage = () => {
 };
 
 export default ResultPage;
-

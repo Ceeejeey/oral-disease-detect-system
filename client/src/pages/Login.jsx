@@ -1,40 +1,62 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import '../styles/global.css';
+import axios from "axios";
+import "../styles/global.css";
 
 export default function Login() {
-  const { login } = useAuth();
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [formData, setFormData] = useState({
+    email: "",
+    password: ""
+  });
+
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError(""); // Clear error on input change
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    const API_URL = "http://localhost:8000/api/login"; // Adjusted to the correct endpoint
 
-    const fakeUser = {
-      email: formData.email,
-      name: "John Doe"
-    };
+    try {
+      const response = await axios.post(API_URL, {
+        email: formData.email,
+        password: formData.password
+      });
 
- 
-    localStorage.setItem("userEmail", formData.email);
+      if (response.status === 200) {
+        const { access_token, token_type } = response.data;
 
+        // Save token to localStorage
+        localStorage.setItem("accessToken", access_token);
+        localStorage.setItem("tokenType", token_type);
 
-    login(fakeUser);
+        alert("✅ Login successful!");
+        navigate("/dashboard");  // Redirect to dashboard or homepage
+      }
 
-    navigate("/dashboard");
+    } catch (error) {
+      console.error("Login Error:", error);
+
+      if (error.response && error.response.data) {
+        setError(error.response.data.detail);
+      } else {
+        setError("❌ An error occurred. Please try again.");
+      }
+    }
   };
 
   return (
     <div className="auth-form">
       <form onSubmit={handleSubmit}>
-        <h2>Welcome Back</h2>
+        <h2>Login</h2>
+
+        {error && <div className="error-msg">{error}</div>}
+
         <input
           type="email"
           name="email"
@@ -43,6 +65,7 @@ export default function Login() {
           value={formData.email}
           required
         />
+
         <input
           type="password"
           name="password"
@@ -51,9 +74,11 @@ export default function Login() {
           value={formData.password}
           required
         />
+
         <button type="submit">Login</button>
-        <p className="form-switch-text">
-          Don’t have an account? <Link to="/signup">Sign Up</Link>
+
+        <p className="signup-link">
+          Don't have an account? <Link to="/signup">Sign Up</Link>
         </p>
       </form>
     </div>
