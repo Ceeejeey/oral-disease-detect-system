@@ -36,3 +36,7 @@ class LoginRequest(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+# ======== Token With User Schema ========
+class TokenWithUser(Token):
+    user: UserResponse

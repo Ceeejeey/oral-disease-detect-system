@@ -1,14 +1,21 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate} from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext"; 
 import "../styles/global.css";
 
 function Navbar() {
   const { user, logout } = useAuth(); 
-  const location = useLocation();     
+  const location = useLocation();   
+  const navigate = useNavigate();
+  
 
+  const handleLogout = () => {
+    logout();            // clear user + tokens
+    navigate("/");       // redirect to home
+  };
 
+  console.log("user in Navbar:", user); // Debugging line
   const isActive = (path) => (location.pathname === path ? "active-link" : "");
   
   return (
@@ -43,7 +50,7 @@ function Navbar() {
                 <Link to="/dashboard">Dashboard</Link>
               </li>
               <li>
-                <button className="logout-btn" onClick={logout}>Logout</button>
+                <button className="logout-btn" onClick={handleLogout}>Logout</button>
               </li>
             </>
           ) : (

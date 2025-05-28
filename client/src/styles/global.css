@@ -1353,3 +1353,21 @@ background-size: cover;
 .settings-form button:hover {
   background-color: #267bd9;
 }
+
+.logout-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  padding: 8px 16px;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.logout-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: #ff6b6b; /* sweet red highlight on hover */
+}

@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../context/AuthContext"; // <-- import context
 import "../styles/global.css";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth(); // <-- use login from context
 
   const [formData, setFormData] = useState({
     email: "",
@@ -15,12 +17,12 @@ export default function Login() {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    setError(""); // Clear error on input change
+    setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const API_URL = "http://localhost:8000/api/login"; // Adjusted to the correct endpoint
+    const API_URL = "http://localhost:8000/api/login";
 
     try {
       const response = await axios.post(API_URL, {
@@ -29,19 +31,21 @@ export default function Login() {
       });
 
       if (response.status === 200) {
-        const { access_token, token_type } = response.data;
+        const { access_token, token_type, user } = response.data;
 
         // Save token to localStorage
         localStorage.setItem("accessToken", access_token);
         localStorage.setItem("tokenType", token_type);
 
+        // Save user using context login()
+        login(user); // 👑 this will update context AND localStorage
+
         alert("✅ Login successful!");
-        navigate("/dashboard");  // Redirect to dashboard or homepage
+        navigate("/dashboard");
       }
 
     } catch (error) {
       console.error("Login Error:", error);
-
       if (error.response && error.response.data) {
         setError(error.response.data.detail);
       } else {
@@ -54,7 +58,6 @@ export default function Login() {
     <div className="auth-form">
       <form onSubmit={handleSubmit}>
         <h2>Login</h2>
-
         {error && <div className="error-msg">{error}</div>}
 
         <input
