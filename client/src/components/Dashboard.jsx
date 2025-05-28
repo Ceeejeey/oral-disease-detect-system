@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate} from 'react-router-dom';
 import "../styles/global.css";
+import { useAuth } from "../context/AuthContext"; // 👈 import Auth
 import { motion } from 'framer-motion';
 import axios from "axios";
 
@@ -8,6 +9,8 @@ const Dashboard = () => {
   const [appointments, setAppointments] = useState([]);
   const [uploads, setUploads] = useState([]);
   const [detectionSummary, setDetectionSummary] = useState({ cancer: 0, other: 0 });
+  const { logout } = useAuth(); // 👈 get logout function from context
+  const navigate = useNavigate();
 
   const location = useLocation();
   const isRootDashboard = location.pathname === "/dashboard";
@@ -63,6 +66,11 @@ const Dashboard = () => {
     transition: { duration: 0.5, delay }
   });
 
+  const handleLogout = () => {
+    logout();            // clear user + tokens
+    navigate("/");       // redirect to home
+  };
+
   return (
     <div className="dashboard-container">
       <aside className="sidebar">
@@ -75,7 +83,9 @@ const Dashboard = () => {
           <Link to="/dashboard/doctors">🧑‍⚕️ Doctors</Link>
           <Link to="/dashboard/learn">📚 Learn</Link>
           <Link to="/dashboard/settings">⚙️ Settings</Link>
-          <Link to="/" className="logout-link">🚪 Logout</Link>
+          <span className="logout-link" onClick={handleLogout} style={{ cursor: "pointer" }}>
+          🚪 Logout
+        </span>
         </nav>
       </aside>
 

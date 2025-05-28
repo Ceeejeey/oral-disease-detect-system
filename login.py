@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 from database import get_db
 from models import User
-from schemas import LoginRequest, Token
+from schemas import LoginRequest, TokenWithUser
 from auth import SECRET_KEY, ALGORITHM
 
 router = APIRouter(
@@ -32,9 +32,9 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-@router.post("/", response_model=Token)
+
+@router.post("/", response_model=TokenWithUser)
 def login(user: LoginRequest, db: Session = Depends(get_db)):
-    # Check if user exists
     db_user = db.query(User).filter(User.email == user.email).first()
     if not db_user:
         raise HTTPException(
@@ -42,14 +42,12 @@ def login(user: LoginRequest, db: Session = Depends(get_db)):
             detail="Invalid email or password"
         )
 
-    # Verify password
     if not verify_password(user.password, db_user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
         )
 
-    # Generate JWT Token
     access_token_expires = timedelta(minutes=60)
     access_token = create_access_token(
         data={"sub": db_user.email},
@@ -58,5 +56,7 @@ def login(user: LoginRequest, db: Session = Depends(get_db)):
 
     return {
         "access_token": access_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "user": db_user  # FastAPI will convert this to UserResponse
     }
+
