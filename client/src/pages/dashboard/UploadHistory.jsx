@@ -2,31 +2,54 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "../../styles/global.css";
 
-const UploadHistory = () => {
+const UploadHistory = ({ userId }) => {
   const [uploads, setUploads] = useState([]);
 
   useEffect(() => {
-    const email = localStorage.getItem("userEmail"); // Save on login/signup
-    axios.get(`http://localhost:8000/uploads/${email}`)
+    const token = localStorage.getItem("accessToken");
+
+    let url = `http://localhost:8000/detections/?token=${encodeURIComponent(token)}`;
+    if (userId) {
+      url += `&user_id=${userId}`;
+    }
+
+    axios.get(url)
       .then(res => {
-        const parsed = JSON.parse(res.data);
-        setUploads(parsed);
+        setUploads(res.data);
       })
-      .catch(err => console.error(err));
-  }, []);
+      .catch(err => {
+        console.error("Error fetching detections:", err);
+      });
+  }, [userId]);
 
   return (
     <div className="history-container">
-      <h2>Upload History</h2>
-      <ul className="upload-list">
-        {uploads.map((upload, i) => (
-          <li key={i} className="upload-item">
-            <p><strong>Disease Type:</strong> {upload.disease_type}</p>
-            <p><strong>Uploaded:</strong> {new Date(upload.upload_time.$date).toLocaleString()}</p>
-            <img src={upload.image_url} alt="upload" height="100" />
-          </li>
-        ))}
-      </ul>
+      <h2 className="history-title">
+        {userId ? `Detections for User ID ${userId}` : "Your Detection History"}
+      </h2>
+
+      {uploads.length === 0 ? (
+        <p className="no-detections">No detections found.</p>
+      ) : (
+        <ul className="upload-list">
+          {uploads.map((upload, i) => (
+            <li key={i} className="upload-item">
+              <div className="upload-image-wrapper">
+                <img 
+                  src={upload.image_url} 
+                  alt="Detection" 
+                  className="upload-image"
+                />
+              </div>
+              <div className="upload-info">
+                <p><strong>🧪 Result:</strong> {upload.prediction}</p>
+                <p><strong>📈 Confidence:</strong> {upload.confidence.toFixed(4)}</p>
+                <p><strong>🕒 Detected On:</strong> {new Date(upload.detected_at).toLocaleString()}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 };

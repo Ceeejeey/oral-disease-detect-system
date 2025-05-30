@@ -1197,55 +1197,66 @@ background-size: cover;
 /* Upload History Styles */
 .history-container {
   max-width: 800px;
-  margin: 3rem auto;
-  padding: 2rem;
-  background-color: #f5f7fa;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  margin: 2rem auto;
+  padding: 1.5rem;
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
+  font-family: 'Segoe UI', sans-serif;
 }
 
-.history-container h2 {
+.history-title {
   font-size: 1.8rem;
+  font-weight: bold;
   margin-bottom: 1.5rem;
-  color: #1e2a3a;
   text-align: center;
+  color: #333;
+}
+
+.no-detections {
+  text-align: center;
+  color: #999;
+  font-size: 1.1rem;
+  margin-top: 2rem;
 }
 
 .upload-list {
   list-style: none;
   padding: 0;
+  margin: 0;
 }
 
 .upload-item {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  background: #f9fafb;
+  border: 1px solid #eee;
+  border-radius: 1rem;
   padding: 1rem;
-  margin-bottom: 1rem;
-  background-color: white;
-  border-left: 5px solid #4f46e5;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1.2rem;
   transition: background 0.3s ease;
 }
 
 .upload-item:hover {
-  background-color: #eef1f7;
+  background: #f0f4ff;
 }
 
-.upload-item p {
-  margin: 0.2rem 0;
-  font-size: 0.95rem;
-  color: #333;
-  flex: 1;
+.upload-image-wrapper {
+  flex-shrink: 0;
+  margin-right: 1rem;
 }
 
-.upload-item img {
-  border-radius: 6px;
+.upload-image {
+  width: 120px;
+  height: auto;
+  border-radius: 0.5rem;
   border: 1px solid #ccc;
-  max-height: 80px;
-  max-width: 100px;
-  object-fit: cover;
+}
+
+.upload-info p {
+  margin: 0.3rem 0;
+  font-size: 1rem;
+  color: #333;
 }
 
 /* General legal/faq page styles */

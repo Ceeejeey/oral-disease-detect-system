@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, constr
 from typing import Optional
+from datetime import datetime
 
 # ======== User Base Schema ========
 class UserBase(BaseModel):
@@ -40,3 +41,22 @@ class Token(BaseModel):
 # ======== Token With User Schema ========
 class TokenWithUser(Token):
     user: UserResponse
+
+# ======== User Detection Schema ========
+class UserDetectionBase(BaseModel):
+    prediction: str
+    confidence: float
+
+class UserDetectionCreate(UserDetectionBase):
+    image: bytes  # Expecting image in bytes during creation
+
+class UserDetectionResponse(BaseModel):
+    id: int
+    user_id: int
+    prediction: str
+    confidence: float
+    detected_at: datetime
+    image_url: Optional[str]  # base64-encoded image
+
+    class Config:
+        orm_mode = True

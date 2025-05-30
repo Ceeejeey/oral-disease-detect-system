@@ -8,13 +8,19 @@ from io import BytesIO
 import timm
 import os
 import numpy as np
+from typing import List, Optional
 from tensorflow.keras.models import load_model
+import base64
 
 from database import get_db
 from signup import router as signup_router
 from login import router as login_router
 from schemas import UserCreate, UserResponse
 from auth import get_current_user
+from models import User, UserDetection
+from schemas import UserDetectionCreate, UserDetectionResponse
+from fastapi import Request
+
 
 
 # ======== Configuration ========
@@ -27,6 +33,8 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # ======== Initialize FastAPI ========
 app = FastAPI()
+
+STATIC_DIR = "static"
 
 # CORS Middleware
 origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
@@ -127,6 +135,17 @@ async def predict(
 
         # Check for specific file name indicating cancer
         if file.filename == "117.jpeg":
+            # Save to user_detections
+            detection = UserDetection(
+                user_id=current_user.id,
+                image=image_data,
+                prediction="Cancer",
+                confidence=1.0
+            )
+            db.add(detection)
+            db.commit()
+            db.refresh(detection)
+
             return {
                 "user": current_user.email,
                 "prediction": "Cancer",
@@ -137,32 +156,83 @@ async def predict(
         disease_label, disease_confidence = predict_disease(image_data)
 
         if disease_confidence >= 0.6:
-            # Disease model is confident
+            result = f"Not Cancer - {disease_label}"
+            confidence = round(disease_confidence, 4)
+
+            # Save to user_detections
+            detection = UserDetection(
+                user_id=current_user.id,
+                image=image_data,
+                prediction=result,
+                confidence=confidence
+            )
+            db.add(detection)
+            db.commit()
+            db.refresh(detection)
+
             return {
                 "user": current_user.email,
-                "prediction": f"Not Cancer - {disease_label}",
-                "confidence": round(disease_confidence, 4)
+                "prediction": result,
+                "confidence": confidence
             }
 
         # Step 2: Cancer Model Prediction
         cancer_label, cancer_confidence = predict_cancer(image_data)
 
         if cancer_label == "Cancer":
-            return {
-                "user": current_user.email,
-                "prediction": "Cancer",
-                "confidence": round(cancer_confidence, 4)
-            }
+            result = "Cancer"
+            confidence = round(cancer_confidence, 4)
+        else:
+            result = "Healthy / No Disease Detected"
+            confidence = round(1 - cancer_confidence, 4)
 
-        # Final output if not cancer and no confident disease
+        # Save to user_detections
+        detection = UserDetection(
+            user_id=current_user.id,
+            image=image_data,
+            prediction=result,
+            confidence=confidence
+        )
+        db.add(detection)
+        db.commit()
+        db.refresh(detection)
+
         return {
             "user": current_user.email,
-            "prediction": "Healthy / No Disease Detected",
-            "confidence": round(1 - cancer_confidence, 4)
+            "prediction": result,
+            "confidence": confidence
         }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+    
+from fastapi import Query
+
+from typing import Optional
+
+@app.get("/detections/", response_model=List[UserDetectionResponse])
+def get_user_detections(
+    request: Request,
+    user_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if user_id:
+        detections = db.query(UserDetection).filter(UserDetection.user_id == user_id).all()
+    else:
+        detections = db.query(UserDetection).filter(UserDetection.user_id == current_user.id).all()
+
+    for detection in detections:
+        # Convert image bytes to base64 string
+        if detection.image:
+            base64_img = base64.b64encode(detection.image).decode('utf-8')
+            detection.image_url = f"data:image/jpeg;base64,{base64_img}"
+        else:
+            detection.image_url = None
+
+    return detections
+
 
 # ======== Root Endpoint ========
 @app.get("/")
