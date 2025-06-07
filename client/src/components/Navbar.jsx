@@ -1,6 +1,5 @@
 import React from "react";
 import { Link, useLocation, useNavigate} from "react-router-dom";
-
 import { useAuth } from "../context/AuthContext"; 
 import "../styles/global.css";
 
@@ -29,7 +28,7 @@ function Navbar() {
       <nav className="navbar">
         <div className="navbar-logo">
           <Link to="/">
-            <img src="/logo1.png" alt="SmileSafe.ai Logo" className="logo-img" />
+            <img src="/logo2.png" alt="SmileSafe.ai Logo" className="logo-img" />
           </Link>
           <span className="navbar-title">
             <span className="highlight">Smile</span>Safe.ai
