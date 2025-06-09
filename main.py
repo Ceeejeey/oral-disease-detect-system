@@ -24,8 +24,8 @@ from fastapi import Request
 
 
 # ======== Configuration ========
-DISEASE_MODEL_PATH = "/home/gihan/Documents/oral-detection/best_model/efficientvit_b0_oral_disease_classifier.pth"
-CANCER_MODEL_PATH = "/home/gihan/Documents/oral-detection/cancer_model_best.h5"
+DISEASE_MODEL_PATH = "/home/gihan/Documents/oral-backend/best_model/efficientvit_b0_oral_disease_classifier.pth"
+CANCER_MODEL_PATH = "/home/gihan/Documents/oral-backend/best_model/cancer_model_best.h5"
 MODEL_NAME = "efficientvit_b0"
 CLASSES = ['Calculus', 'Caries', 'Gingivitis', 'Hypodontia', 'Tooth Discoloration', 'Ulcers']
 NUM_CLASSES = len(CLASSES)
