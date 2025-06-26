@@ -119,7 +119,7 @@ const Dashboard = () => {
       <main className="main-content">
         <div className="top-bar">
           <h1>Welcome back 👋</h1>
-          <input type="text" placeholder="Search doctors, reports..." className="search-box" />
+          
         </div>
 
         {isRootDashboard ? (
@@ -150,7 +150,7 @@ const Dashboard = () => {
                           <ul>
                             {todaysAppointments.map((a, i) => (
                               <li key={i} className="today-appointment">
-                                🕒 {a.doctor} — {a.time}
+                                 {a.doctor} — {a.time}
                               </li>
                             ))}
                           </ul>
