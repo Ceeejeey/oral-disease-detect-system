@@ -47,14 +47,14 @@ const ResultPage = () => {
     <div className="result-container">
       <h2>Analysis Result</h2>
 
-      <div className={`result-card ${prediction === "Cancer" ? "cancer" : "other"}`}>
+      <div className={`result-card ${prediction?.toLowerCase() === "cancer" ? "cancer" : "other"}`}>
         <h3>{prediction}</h3>
         <p>Confidence: {(confidence * 100).toFixed(2)}%</p>
       </div>
 
       <button onClick={generatePDF} className="pdf-button">Download PDF Report</button>
 
-      {prediction === "Cancer" && (
+      {prediction?.toLowerCase() === "cancer" && (
         <div className="important-note">
           <p><strong>⚠️ Important:</strong> Please consult an oral cancer specialist immediately.</p>
           <button className="doctor-button" onClick={() => handleProtectedNavigate("/dashboard/doctors")}>
